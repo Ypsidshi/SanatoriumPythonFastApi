@@ -1,0 +1,153 @@
+Manual API tests (Swagger or curl)
+
+Base URL
+http://127.0.0.1:8000
+
+1) Health check
+Request:
+GET /health
+Expected:
+200 OK
+{"status":"ok"}
+
+2) Availability report
+Request:
+GET /api/pansionats/availability
+Expected:
+200 OK
+items: list of pansionats with service_count
+Example:
+{
+  "items": [
+    {
+      "id_pansionat": 1,
+      "name": "Пансионат 1",
+      "service_count": 3
+    },
+    {
+      "id_pansionat": 2,
+      "name": "Пансионат 2",
+      "service_count": 1
+    }
+  ]
+}
+
+3) Pansionat stats by year
+Request:
+GET /api/pansionats/stats
+Expected:
+200 OK
+items: list of years with pansionats count
+Example:
+{
+  "items": [
+    { "year": 2010, "pansionats": 1 },
+    { "year": 2015, "pansionats": 1 }
+  ]
+}
+
+4) Create pansionat
+Request:
+POST /api/pansionats
+Body:
+{
+  "name": "Пансионат 3",
+  "photo": null,
+  "buiding_year": 2020,
+  "administrator_id": 1,
+  "health_profile_id": 1,
+  "service_ids": [1, 2]
+}
+Expected:
+200 OK
+{
+  "id_pansionat": 3
+}
+
+5) Update pansionat (rename + change services)
+Request:
+PUT /api/pansionats/3
+Body:
+{
+  "name": "Пансионат 3 (обновлен)",
+  "service_ids": [2, 3]
+}
+Expected:
+200 OK
+{"status":"ok"}
+
+6) Create contract
+Request:
+POST /api/contracts
+Body:
+{
+  "start_date": "2025-03-01",
+  "final_date": "2025-03-10",
+  "summa": 15000,
+  "manager_id": 1,
+  "room_id": 1,
+  "resident_id": 1,
+  "status_of_contract_id": 1
+}
+Expected:
+200 OK
+{
+  "id_dogovor": 3
+}
+
+7) Update contract
+Request:
+PUT /api/contracts/3
+Body:
+{
+  "summa": 17000
+}
+Expected:
+200 OK
+{"status":"ok"}
+
+8) Occupancy report (range intersects existing contracts)
+Request:
+GET /api/contracts/occupancy?date_from=2025-01-01&date_to=2025-12-31
+Expected:
+200 OK
+items: list of pansionats with contracts count
+Example:
+{
+  "items": [
+    { "pansionat_id": 1, "name": "Пансионат 1", "contracts": 2 },
+    { "pansionat_id": 2, "name": "Пансионат 2", "contracts": 1 }
+  ]
+}
+
+9) Revenue report
+Request:
+GET /api/contracts/revenue?date_from=2025-01-01&date_to=2025-12-31
+Expected:
+200 OK
+items: list of pansionats with total_revenue and avg_check
+Example:
+{
+  "items": [
+    { "pansionat_id": 1, "name": "Пансионат 1", "total_revenue": 35000, "avg_check": 17500 },
+    { "pansionat_id": 2, "name": "Пансионат 2", "total_revenue": 18000, "avg_check": 18000 }
+  ]
+}
+
+10) Delete contract
+Request:
+DELETE /api/contracts/3
+Expected:
+200 OK
+{"status":"deleted"}
+
+11) Delete pansionat
+Request:
+DELETE /api/pansionats/3
+Expected:
+200 OK
+{"status":"deleted"}
+
+Notes
+- IDs in examples assume the seed script sql/03_seed_mssql.sql was executed.
+- If you already have data, IDs and counts may differ.
