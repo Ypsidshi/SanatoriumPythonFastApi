@@ -4,6 +4,7 @@
 IF OBJECT_ID('trg_pos_price_bump', 'TR') IS NOT NULL DROP TRIGGER trg_pos_price_bump;
 IF OBJECT_ID('trg_pos_heart_discount', 'TR') IS NOT NULL DROP TRIGGER trg_pos_heart_discount;
 IF OBJECT_ID('trg_contract_early_discount', 'TR') IS NOT NULL DROP TRIGGER trg_contract_early_discount;
+IF OBJECT_ID('trg_contract_auto_close', 'TR') IS NOT NULL DROP TRIGGER trg_contract_auto_close;
 IF OBJECT_ID('vw_services_availability', 'V') IS NOT NULL DROP VIEW vw_services_availability;
 IF OBJECT_ID('vw_pansionat_stats', 'V') IS NOT NULL DROP VIEW vw_pansionat_stats;
 IF OBJECT_ID('vw_contract_occupancy', 'V') IS NOT NULL DROP VIEW vw_contract_occupancy;
@@ -122,12 +123,11 @@ BEGIN
     SET s.price = s.price * 1.05
     FROM service s
     JOIN provision_of_services pos ON pos.service = s.id_service
-    JOIN inserted i ON i.pansionat = pos.pansionat
-    WHERE s.id_service <> i.service;
+    JOIN (SELECT DISTINCT pansionat FROM inserted) i ON i.pansionat = pos.pansionat;
 END
 GO
 
--- Trigger: if health profile is 'СЃРµСЂРґС†Рµ', discount services linked to that pansionat
+-- Trigger: if health profile is 'сердечно-сосудистый', discount services linked to that pansionat
 CREATE TRIGGER trg_pos_heart_discount
 ON provision_of_services
 AFTER INSERT
@@ -140,7 +140,7 @@ BEGIN
     JOIN inserted i ON s.id_service = i.service
     JOIN pansionat p ON p.id_pansionat = i.pansionat
     JOIN health_profile hp ON hp.id_health_profile = p.health_profile
-    WHERE LOWER(hp.profile) = N'СЃРµСЂРґС†Рµ';
+    WHERE LOWER(hp.profile) = N'сердечно-сосудистый';
 END
 GO
 
@@ -155,6 +155,30 @@ BEGIN
     SET c.summa = CASE WHEN DATEDIFF(DAY, GETDATE(), c.start_date) >= 30 THEN c.summa * 0.9 ELSE c.summa END
     FROM contract c
     JOIN inserted i ON c.id_contract = i.id_contract;
+END
+GO
+
+-- Trigger: auto-close finished contracts (status = 0) when inserted/updated
+CREATE TRIGGER trg_contract_auto_close
+ON contract
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF TRIGGER_NESTLEVEL() > 1
+        RETURN;
+
+    DECLARE @closed_status_id INT;
+    SELECT TOP 1 @closed_status_id = id_status_of_contract FROM status_of_contract WHERE status = 0;
+    IF @closed_status_id IS NULL
+        RETURN;
+
+    UPDATE c
+    SET c.status_of_contract = @closed_status_id
+    FROM contract c
+    JOIN inserted i ON c.id_contract = i.id_contract
+    WHERE c.final_date < CAST(GETDATE() AS DATE)
+      AND c.status_of_contract <> @closed_status_id;
 END
 GO
 

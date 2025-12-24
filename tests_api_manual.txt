@@ -21,12 +21,12 @@ Example:
   "items": [
     {
       "id_pansionat": 1,
-      "name": "Пансионат 1",
+      "name": "Pansionat 1",
       "service_count": 3
     },
     {
       "id_pansionat": 2,
-      "name": "Пансионат 2",
+      "name": "Pansionat 2",
       "service_count": 1
     }
   ]
@@ -51,11 +51,11 @@ Request:
 POST /api/pansionats
 Body:
 {
-  "name": "Пансионат 3",
+  "name": "Pansionat 3",
   "photo": null,
-  "buiding_year": 2020,
-  "administrator_id": 1,
+  "building_year": "2020-01-01",
   "health_profile_id": 1,
+  "administrator_ids": [1],
   "service_ids": [1, 2]
 }
 Expected:
@@ -69,7 +69,7 @@ Request:
 PUT /api/pansionats/3
 Body:
 {
-  "name": "Пансионат 3 (обновлен)",
+  "name": "Pansionat 3 (updated)",
   "service_ids": [2, 3]
 }
 Expected:
@@ -115,8 +115,8 @@ items: list of pansionats with contracts count
 Example:
 {
   "items": [
-    { "pansionat_id": 1, "name": "Пансионат 1", "contracts": 2 },
-    { "pansionat_id": 2, "name": "Пансионат 2", "contracts": 1 }
+    { "pansionat_id": 1, "name": "Pansionat 1", "contracts": 2 },
+    { "pansionat_id": 2, "name": "Pansionat 2", "contracts": 1 }
   ]
 }
 
@@ -129,8 +129,8 @@ items: list of pansionats with total_revenue and avg_check
 Example:
 {
   "items": [
-    { "pansionat_id": 1, "name": "Пансионат 1", "total_revenue": 35000, "avg_check": 17500 },
-    { "pansionat_id": 2, "name": "Пансионат 2", "total_revenue": 18000, "avg_check": 18000 }
+    { "pansionat_id": 1, "name": "Pansionat 1", "total_revenue": 35000, "avg_check": 17500 },
+    { "pansionat_id": 2, "name": "Pansionat 2", "total_revenue": 18000, "avg_check": 18000 }
   ]
 }
 
@@ -147,6 +147,86 @@ DELETE /api/pansionats/3
 Expected:
 200 OK
 {"status":"deleted"}
+
+12) Admin summary (pansionats/rooms/residents/services)
+Request:
+GET /api/admin/pansionats/summary?administrator_id=1
+Expected:
+200 OK
+Example:
+{
+  "administrator_id": 1,
+  "pansionats": 2,
+  "rooms": 3,
+  "residents": 2,
+  "services": 3
+}
+
+13) Admin revenue by pansionat
+Request:
+GET /api/admin/contracts/revenue?administrator_id=1&date_from=2025-01-01&date_to=2025-12-31
+Expected:
+200 OK
+items: list of admin pansionats with revenue
+Example:
+{
+  "items": [
+    { "pansionat_id": 1, "name": "Pansionat 1", "contracts": 1, "total_revenue": 20000, "avg_check": 20000 },
+    { "pansionat_id": 2, "name": "Pansionat 2", "contracts": 1, "total_revenue": 18000, "avg_check": 18000 }
+  ]
+}
+
+14) Admin top services
+Request:
+GET /api/admin/services/top?administrator_id=1&limit=5
+Expected:
+200 OK
+items: services ordered by usage_count
+Example:
+{
+  "items": [
+    { "service_id": 2, "name": "Service 2", "usage_count": 2 },
+    { "service_id": 1, "name": "Service 1", "usage_count": 1 }
+  ]
+}
+
+15) Manager contracts by status
+Request:
+GET /api/manager/contracts/status?manager_id=1
+Expected:
+200 OK
+items: status (0/1) grouped
+Example:
+{
+  "items": [
+    { "status": true, "contracts": 2, "total_revenue": 38000 }
+  ]
+}
+
+16) Manager contracts summary in period
+Request:
+GET /api/manager/contracts/period?manager_id=1&date_from=2025-01-01&date_to=2025-12-31
+Expected:
+200 OK
+Example:
+{
+  "contracts": 2,
+  "total_revenue": 38000,
+  "avg_check": 19000
+}
+
+17) Manager contracts by room type
+Request:
+GET /api/manager/rooms/types?manager_id=1&date_from=2025-01-01&date_to=2025-12-31
+Expected:
+200 OK
+items: room types grouped
+Example:
+{
+  "items": [
+    { "room_type": "Standard", "contracts": 2, "total_revenue": 38000 }
+  ]
+}
 
 Notes
 - IDs in examples assume the seed script sql/03_seed_mssql.sql was executed.
