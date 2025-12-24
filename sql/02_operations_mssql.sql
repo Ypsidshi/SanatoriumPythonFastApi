@@ -92,7 +92,7 @@ CREATE VIEW vw_contract_occupancy AS
 SELECT
     p.id_pansionat,
     p.name,
-    COUNT(c.id_dogovor) AS contracts
+    COUNT(c.id_contract) AS contracts
 FROM pansionat p
 JOIN room r ON r.pansionat = p.id_pansionat
 JOIN contract c ON c.room = r.id_room
@@ -154,7 +154,7 @@ BEGIN
     UPDATE c
     SET c.summa = CASE WHEN DATEDIFF(DAY, GETDATE(), c.start_date) >= 30 THEN c.summa * 0.9 ELSE c.summa END
     FROM contract c
-    JOIN inserted i ON c.id_dogovor = i.id_dogovor;
+    JOIN inserted i ON c.id_contract = i.id_contract;
 END
 GO
 
@@ -174,7 +174,7 @@ BEGIN
         BEGIN TRAN;
         INSERT INTO contract(start_date, final_date, summa, manager, room, resident, status_of_contract)
         VALUES (@p_start_date, @p_final_date, @p_summa, @p_manager, @p_room, @p_resident, @p_status_of_contract);
-        SELECT SCOPE_IDENTITY() AS id_dogovor;
+        SELECT SCOPE_IDENTITY() AS id_contract;
         COMMIT TRAN;
     END TRY
     BEGIN CATCH
@@ -204,7 +204,7 @@ BEGIN
         room = ISNULL(@p_room, room),
         resident = ISNULL(@p_resident, resident),
         status_of_contract = ISNULL(@p_status_of_contract, status_of_contract)
-    WHERE id_dogovor = @p_id;
+    WHERE id_contract = @p_id;
 END
 GO
 
@@ -213,7 +213,7 @@ CREATE PROCEDURE sp_delete_contract
 AS
 BEGIN
     SET NOCOUNT ON;
-    DELETE FROM contract WHERE id_dogovor = @p_id;
+    DELETE FROM contract WHERE id_contract = @p_id;
 END
 GO
 

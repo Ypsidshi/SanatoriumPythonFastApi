@@ -124,7 +124,7 @@ CREATE TABLE resident (
 GO
 
 CREATE TABLE contract (
-    id_dogovor INT IDENTITY(1,1) PRIMARY KEY,
+    id_contract INT IDENTITY(1,1) PRIMARY KEY,
     start_date DATE NOT NULL,
     final_date DATE NOT NULL,
     summa INT NOT NULL,

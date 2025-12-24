@@ -13,6 +13,16 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 ```
+PowerShell note (if script execution is blocked):
+```
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.venv\Scripts\Activate.ps1
+```
+Or skip activation and run tools directly:
+```
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\uvicorn app.main:app --reload
+```
 2) Set a `DATABASE_URL` env var (MSSQL):
 - `set DATABASE_URL=mssql+pyodbc://user:password@localhost:1433/sanatorium?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes`
 3) Create database objects:

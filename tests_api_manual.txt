@@ -92,7 +92,7 @@ Body:
 Expected:
 200 OK
 {
-  "id_dogovor": 3
+  "id_contract": 3
 }
 
 7) Update contract

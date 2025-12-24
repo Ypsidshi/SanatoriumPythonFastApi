@@ -36,9 +36,6 @@ def ensure_tables():
 @app.post("/api/pansionats", summary="Create pansionat and link services")
 def create_pansionat(payload: PansionatCreate, db: Session = Depends(get_db)):
     try:
-        admin = db.get(Administrator, payload.administrator_id)
-        if not admin:
-            raise HTTPException(status_code=400, detail="Administrator not found")
         profile = db.get(HealthProfile, payload.health_profile_id)
         if not profile:
             raise HTTPException(status_code=400, detail="Health profile not found")
@@ -46,12 +43,18 @@ def create_pansionat(payload: PansionatCreate, db: Session = Depends(get_db)):
         pansionat = Pansionat(
             name=payload.name,
             photo=payload.photo,
-            buiding_year=payload.buiding_year,
-            administrator=admin,
+            building_year=payload.building_year,
             health_profile=profile,
         )
         db.add(pansionat)
         db.flush()
+
+        if payload.administrator_ids:
+            admins = db.query(Administrator).filter(Administrator.id_administrator.in_(payload.administrator_ids)).all()
+            if len(admins) != len(set(payload.administrator_ids)):
+                raise HTTPException(status_code=400, detail="One or more administrators not found")
+            for admin in admins:
+                pansionat.administrators.append(admin)
 
         if payload.service_ids:
             services = db.query(Service).filter(Service.id_service.in_(payload.service_ids)).all()
@@ -83,11 +86,14 @@ def update_pansionat(pansionat_id: int, payload: PansionatUpdate, db: Session = 
                     raise HTTPException(status_code=400, detail="One or more services not found")
                 for svc in services:
                     pansionat.services.append(svc)
-        elif field == "administrator_id":
-            admin = db.get(Administrator, value)
-            if not admin:
-                raise HTTPException(status_code=400, detail="Administrator not found")
-            pansionat.administrator = admin
+        elif field == "administrator_ids":
+            pansionat.administrators.clear()
+            if value:
+                admins = db.query(Administrator).filter(Administrator.id_administrator.in_(value)).all()
+                if len(admins) != len(set(value)):
+                    raise HTTPException(status_code=400, detail="One or more administrators not found")
+                for admin in admins:
+                    pansionat.administrators.append(admin)
         elif field == "health_profile_id":
             profile = db.get(HealthProfile, value)
             if not profile:
@@ -116,9 +122,13 @@ def availability_report(db: Session = Depends(get_db)):
         select(
             Pansionat.id_pansionat,
             Pansionat.name,
-            func.count(provision_of_services.c.service).label("service_count"),
+            func.count(provision_of_services.c.YclygaID_yclygi).label("service_count"),
         )
-        .join(provision_of_services, provision_of_services.c.pansionat == Pansionat.id_pansionat, isouter=True)
+        .join(
+            provision_of_services,
+            provision_of_services.c.PansionatID_pansionata == Pansionat.id_pansionat,
+            isouter=True,
+        )
         .group_by(Pansionat.id_pansionat, Pansionat.name)
     )
     rows = db.execute(stmt).mappings().all()
@@ -128,9 +138,9 @@ def availability_report(db: Session = Depends(get_db)):
 @app.get("/api/pansionats/stats", summary="Technical characteristics stats")
 def pansionat_stats(db: Session = Depends(get_db)):
     stmt = select(
-        Pansionat.buiding_year.label("year"),
+        func.year(Pansionat.building_year).label("year"),
         func.count().label("pansionats"),
-    ).group_by(Pansionat.buiding_year)
+    ).group_by(func.year(Pansionat.building_year))
     return {"items": db.execute(stmt).mappings().all()}
 
 
@@ -161,7 +171,7 @@ def create_contract(payload: ContractCreate, db: Session = Depends(get_db)):
     db.add(contract)
     db.commit()
     db.refresh(contract)
-    return {"id_dogovor": contract.id_dogovor}
+    return {"id_contract": contract.id_contract}
 
 
 @app.put("/api/contracts/{contract_id}", summary="Update contract fields")
@@ -218,10 +228,10 @@ def occupancy_report(
         select(
             Pansionat.id_pansionat.label("pansionat_id"),
             Pansionat.name,
-            func.count(Contract.id_dogovor).label("contracts"),
+            func.count(Contract.id_contract).label("contracts"),
         )
-        .join(Room, Room.pansionat == Pansionat.id_pansionat)
-        .join(Contract, Contract.room == Room.id_room)
+        .join(Room, Room.pansionat_id == Pansionat.id_pansionat)
+        .join(Contract, Contract.room_id == Room.id_room)
         .where(
             Contract.start_date <= date_to,
             Contract.final_date >= date_from,
@@ -244,8 +254,8 @@ def revenue_report(
             func.sum(Contract.summa).label("total_revenue"),
             func.avg(Contract.summa).label("avg_check"),
         )
-        .join(Room, Room.pansionat == Pansionat.id_pansionat)
-        .join(Contract, Contract.room == Room.id_room)
+        .join(Room, Room.pansionat_id == Pansionat.id_pansionat)
+        .join(Contract, Contract.room_id == Room.id_room)
         .where(
             Contract.start_date >= date_from,
             Contract.final_date <= date_to,

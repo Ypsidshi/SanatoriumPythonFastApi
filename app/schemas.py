@@ -7,18 +7,18 @@ from pydantic import BaseModel, Field
 class PansionatCreate(BaseModel):
     name: str = Field(..., max_length=255)
     photo: Optional[str] = Field(None, max_length=255)
-    buiding_year: int
-    administrator_id: int
+    building_year: date
     health_profile_id: int
+    administrator_ids: List[int] = Field(default_factory=list)
     service_ids: List[int] = Field(default_factory=list)
 
 
 class PansionatUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     photo: Optional[str] = Field(None, max_length=255)
-    buiding_year: Optional[int] = None
-    administrator_id: Optional[int] = None
+    building_year: Optional[date] = None
     health_profile_id: Optional[int] = None
+    administrator_ids: Optional[List[int]] = None
     service_ids: Optional[List[int]] = None
 
 
