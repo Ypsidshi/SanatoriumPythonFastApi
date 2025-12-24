@@ -3,6 +3,7 @@
 
 IF OBJECT_ID('using_service', 'U') IS NOT NULL DROP TABLE using_service;
 IF OBJECT_ID('provision_of_services', 'U') IS NOT NULL DROP TABLE provision_of_services;
+IF OBJECT_ID('vladenie', 'U') IS NOT NULL DROP TABLE vladenie;
 IF OBJECT_ID('contract', 'U') IS NOT NULL DROP TABLE contract;
 IF OBJECT_ID('resident', 'U') IS NOT NULL DROP TABLE resident;
 IF OBJECT_ID('room', 'U') IS NOT NULL DROP TABLE room;
@@ -174,5 +175,18 @@ CREATE TABLE using_service (
     CONSTRAINT fk_using_service_resident
         FOREIGN KEY (resident) REFERENCES resident(id_resident)
         ON DELETE CASCADE ON UPDATE CASCADE
+);
+GO
+
+CREATE TABLE vladenie (
+    administrator INT NOT NULL,
+    pansionat INT NOT NULL,
+    CONSTRAINT pk_vladenie PRIMARY KEY CLUSTERED (administrator, pansionat),
+    CONSTRAINT fk_vladenie_admin
+        FOREIGN KEY (administrator) REFERENCES administrator(id_administrator)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_vladenie_pansionat
+        FOREIGN KEY (pansionat) REFERENCES pansionat(id_pansionat)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 GO

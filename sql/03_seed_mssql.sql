@@ -5,6 +5,7 @@ GO
 
 DELETE FROM using_service;
 DELETE FROM provision_of_services;
+DELETE FROM vladenie;
 DELETE FROM contract;
 DELETE FROM resident;
 DELETE FROM room;
@@ -43,6 +44,9 @@ VALUES ('Массаж', 1000, '60 мин'),
 INSERT INTO pansionat (name, photo, buiding_year, administrator, health_profile)
 VALUES ('Пансионат 1', NULL, 2010, 1, 1),
        ('Пансионат 2', NULL, 2015, 1, 2);
+
+INSERT INTO vladenie (administrator, pansionat)
+VALUES (1, 1), (1, 2);
 
 INSERT INTO room (price, pansionat, type, status_room)
 VALUES (2000, 1, 1, 1),
