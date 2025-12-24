@@ -58,7 +58,7 @@ BEGIN
 END
 SELECT 'admin_revenue' AS metric, DATEDIFF(ms, @t, SYSDATETIME()) AS elapsed_ms;
 
--- Admin top services
+-- Admin top services (offered across admin pansionats)
 SET @i = 0;
 SET @t = SYSDATETIME();
 WHILE @i < @repeat
@@ -66,15 +66,14 @@ BEGIN
     SELECT
         s.id_service AS service_id,
         s.name,
-        COUNT(us.resident) AS usage_count
+        COUNT(DISTINCT pos.pansionat) AS pansionat_count
     FROM service s
-    JOIN using_service us ON us.service = s.id_service
-    JOIN resident res ON res.id_resident = us.resident
-    JOIN pansionat p ON p.id_pansionat = res.pansionat
+    JOIN provision_of_services pos ON pos.service = s.id_service
+    JOIN pansionat p ON p.id_pansionat = pos.pansionat
     JOIN vladenie v ON v.pansionat = p.id_pansionat
     WHERE v.administrator = @administrator_id
     GROUP BY s.id_service, s.name
-    ORDER BY COUNT(us.resident) DESC;
+    ORDER BY COUNT(DISTINCT pos.pansionat) DESC;
 
     SET @i += 1;
 END

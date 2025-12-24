@@ -404,7 +404,7 @@ def admin_revenue(
 
 @app.get(
     "/api/admin/services/top",
-    summary="Top services used in admin pansionats",
+    summary="Top services offered in admin pansionats",
     tags=["Admin: Analytics"],
 )
 def admin_top_services(
@@ -416,15 +416,14 @@ def admin_top_services(
         select(
             Service.id_service.label("service_id"),
             Service.name,
-            func.count(using_service.c.resident).label("usage_count"),
+            func.count(func.distinct(provision_of_services.c.pansionat)).label("pansionat_count"),
         )
-        .join(using_service, using_service.c.service == Service.id_service)
-        .join(Resident, Resident.id_resident == using_service.c.resident)
-        .join(Pansionat, Pansionat.id_pansionat == Resident.pansionat_id)
+        .join(provision_of_services, provision_of_services.c.service == Service.id_service)
+        .join(Pansionat, Pansionat.id_pansionat == provision_of_services.c.pansionat)
         .join(vladenie, vladenie.c.pansionat == Pansionat.id_pansionat)
         .where(vladenie.c.administrator == administrator_id)
         .group_by(Service.id_service, Service.name)
-        .order_by(func.count(using_service.c.resident).desc())
+        .order_by(func.count(func.distinct(provision_of_services.c.pansionat)).desc())
         .limit(limit)
     )
     return {"items": db.execute(stmt).mappings().all()}

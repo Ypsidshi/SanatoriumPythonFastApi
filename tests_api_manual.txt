@@ -181,12 +181,12 @@ Request:
 GET /api/admin/services/top?administrator_id=1&limit=5
 Expected:
 200 OK
-items: services ordered by usage_count
+items: services ordered by pansionat_count
 Example:
 {
   "items": [
-    { "service_id": 2, "name": "Service 2", "usage_count": 2 },
-    { "service_id": 1, "name": "Service 1", "usage_count": 1 }
+    { "service_id": 2, "name": "Service 2", "pansionat_count": 2 },
+    { "service_id": 1, "name": "Service 1", "pansionat_count": 1 }
   ]
 }
 
