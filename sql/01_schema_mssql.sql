@@ -114,13 +114,9 @@ CREATE TABLE resident (
     telephone BIGINT NOT NULL,
     passport BIGINT NOT NULL UNIQUE,
     manager INT NOT NULL,
-    pansionat INT NULL,
     CONSTRAINT fk_resident_manager
         FOREIGN KEY (manager) REFERENCES manager(id_manager)
-        ON DELETE NO ACTION ON UPDATE CASCADE,
-    CONSTRAINT fk_resident_pansionat
-        FOREIGN KEY (pansionat) REFERENCES pansionat(id_pansionat)
-        ON DELETE SET NULL ON UPDATE CASCADE
+        ON DELETE NO ACTION ON UPDATE CASCADE
 );
 GO
 
@@ -144,7 +140,9 @@ CREATE TABLE contract (
         ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT fk_contract_status
         FOREIGN KEY (status_of_contract) REFERENCES status_of_contract(id_status_of_contract)
-        ON DELETE NO ACTION ON UPDATE CASCADE
+        ON DELETE NO ACTION ON UPDATE CASCADE,
+    CONSTRAINT uq_contract_room UNIQUE (room),
+    CONSTRAINT uq_contract_resident UNIQUE (resident)
 );
 GO
 

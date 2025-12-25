@@ -53,9 +53,9 @@ VALUES (2000, 1, 1, 1),
        (3500, 1, 2, 1),
        (1800, 2, 1, 1);
 
-INSERT INTO resident (surname, name, otchestvo, mail, telephone, passport)
-VALUES ('Сидоров', 'Сидор', 'Сидорович', 'res1@example.com', 79000000003, 1234567890),
-       ('Ильина', 'Анна', 'Павловна', 'res2@example.com', 79000000004, 2345678901);
+INSERT INTO resident (surname, name, otchestvo, mail, telephone, passport, manager)
+VALUES ('Сидоров', 'Сидор', 'Сидорович', 'res1@example.com', 79000000003, 1234567890, 1),
+       ('Ильина', 'Анна', 'Павловна', 'res2@example.com', 79000000004, 2345678901, 1);
 
 INSERT INTO provision_of_services (service, pansionat)
 VALUES (1, 1), (2, 1), (3, 1),

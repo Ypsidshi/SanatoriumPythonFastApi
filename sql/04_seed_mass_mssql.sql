@@ -1,5 +1,7 @@
 ﻿-- Mass seed for SQL Server based on current schema.
 -- Adjust counts as needed.
+USE sanatorium;
+GO
 SET NOCOUNT ON;
 
 DECLARE @administrator_count INT = 200;
@@ -975,14 +977,15 @@ full_names AS (
         CROSS JOIN female_otch o
     ) fn
 )
-INSERT INTO resident (surname, name, otchestvo, mail, telephone, passport)
+INSERT INTO resident (surname, name, otchestvo, mail, telephone, passport, manager)
 SELECT TOP (@resident_count)
     fn.surname,
     fn.name,
     fn.otchestvo,
     CONCAT(N'user.', fn.rn, N'.', (seed.seed_value % 97) + 2, N'@', d.domain),
     7500000000 + ((fn.rn * 1543) % 1000000000),
-    4000000000 + ((fn.rn * 7919) % 500000000)
+    4000000000 + ((fn.rn * 7919) % 500000000),
+    m.id_manager
 FROM full_names fn
     CROSS APPLY (
         SELECT ABS(CHECKSUM(fn.surname + fn.name + fn.otchestvo + CAST(fn.rn AS NVARCHAR(10)))) AS seed_value
@@ -999,6 +1002,7 @@ FROM full_names fn
         ) v(domain)
         ORDER BY CHECKSUM(NEWID())
     ) d
+JOIN #managers m ON m.rn = ((fn.rn - 1) % @manager_rows) + 1
 ORDER BY fn.rn;
 
 SELECT ROW_NUMBER() OVER (ORDER BY id_room) AS rn, id_room
@@ -1011,9 +1015,13 @@ FROM resident;
 
 DECLARE @room_rows INT = (SELECT COUNT(*) FROM #rooms);
 DECLARE @resident_rows INT = (SELECT COUNT(*) FROM #residents);
+DECLARE @contract_limit INT;
+
+SELECT @contract_limit = MIN(val)
+FROM (VALUES (@contract_count), (@room_rows), (@resident_rows)) v(val);
 
 ;WITH n AS (
-    SELECT TOP (@contract_count) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    SELECT TOP (@contract_limit) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
     FROM sys.all_objects a CROSS JOIN sys.all_objects b
 )
 INSERT INTO contract (
@@ -1034,8 +1042,8 @@ SELECT
     res.id_resident,
     s.id_status_of_contract
 FROM n
-JOIN #rooms r ON r.rn = ((n - 1) % @room_rows) + 1
-JOIN #residents res ON res.rn = ((n - 1) % @resident_rows) + 1
+JOIN #rooms r ON r.rn = n
+JOIN #residents res ON res.rn = n
 JOIN #managers m ON m.rn = ((n - 1) % @manager_rows) + 1
 JOIN #status_contracts s ON s.rn = ((n - 1) % @status_contract_rows) + 1;
 
