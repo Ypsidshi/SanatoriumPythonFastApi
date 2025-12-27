@@ -154,7 +154,6 @@ class Resident(Base):
     telephone = Column(BigInteger, nullable=False)
     passport = Column(BigInteger, nullable=False, unique=True)
     manager_id = Column("manager", Integer, ForeignKey("manager.id_manager"), nullable=False)
-    pansionat_id = Column("pansionat", Integer, ForeignKey("pansionat.id_pansionat"), nullable=True)
 
     manager = relationship("Manager", back_populates="residents")
     contracts = relationship("Contract", back_populates="resident")

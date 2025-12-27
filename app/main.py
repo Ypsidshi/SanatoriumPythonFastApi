@@ -68,6 +68,10 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
+
+def raise_manager_error(exc: Exception) -> None:
+    raise HTTPException(status_code=400, detail=f"Unexpected manager error: {exc}") from exc
+
 ALLOWED_TABLES = {
     "manager": Manager.__table__,
     "administrator": Administrator.__table__,
@@ -214,76 +218,91 @@ def pansionat_stats(db: Session = Depends(get_db)):
 
 @app.post("/api/contracts", summary="Create contract", tags=["Manager: Contracts"])
 def create_contract(payload: ContractCreate, db: Session = Depends(get_db)):
-    manager = db.get(Manager, payload.manager_id)
-    if not manager:
-        raise HTTPException(status_code=400, detail="Manager not found")
-    room = db.get(Room, payload.room_id)
-    if not room:
-        raise HTTPException(status_code=400, detail="Room not found")
-    resident = db.get(Resident, payload.resident_id)
-    if not resident:
-        raise HTTPException(status_code=400, detail="Resident not found")
-    status = db.get(StatusOfContract, payload.status_of_contract_id)
-    if not status:
-        raise HTTPException(status_code=400, detail="Status_of_contract not found")
+    try:
+        manager = db.get(Manager, payload.manager_id)
+        if not manager:
+            raise HTTPException(status_code=400, detail="Manager not found")
+        room = db.get(Room, payload.room_id)
+        if not room:
+            raise HTTPException(status_code=400, detail="Room not found")
+        resident = db.get(Resident, payload.resident_id)
+        if not resident:
+            raise HTTPException(status_code=400, detail="Resident not found")
+        status = db.get(StatusOfContract, payload.status_of_contract_id)
+        if not status:
+            raise HTTPException(status_code=400, detail="Status_of_contract not found")
 
-    contract = Contract(
-        start_date=payload.start_date,
-        final_date=payload.final_date,
-        summa=payload.summa,
-        manager=manager,
-        room=room,
-        resident=resident,
-        status_of_contract=status,
-    )
-    db.add(contract)
-    db.commit()
-    db.refresh(contract)
-    return {"id_contract": contract.id_contract}
+        contract = Contract(
+            start_date=payload.start_date,
+            final_date=payload.final_date,
+            summa=payload.summa,
+            manager=manager,
+            room=room,
+            resident=resident,
+            status_of_contract=status,
+        )
+        db.add(contract)
+        db.commit()
+        db.refresh(contract)
+        return {"id_contract": contract.id_contract}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.put("/api/contracts/{contract_id}", summary="Update contract fields", tags=["Manager: Contracts"])
 def update_contract(contract_id: int, payload: ContractUpdate, db: Session = Depends(get_db)):
-    contract = db.get(Contract, contract_id)
-    if not contract:
-        raise HTTPException(status_code=404, detail="Contract not found")
+    try:
+        contract = db.get(Contract, contract_id)
+        if not contract:
+            raise HTTPException(status_code=404, detail="Contract not found")
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        if field == "manager_id":
-            manager = db.get(Manager, value)
-            if not manager:
-                raise HTTPException(status_code=400, detail="Manager not found")
-            contract.manager = manager
-        elif field == "room_id":
-            room = db.get(Room, value)
-            if not room:
-                raise HTTPException(status_code=400, detail="Room not found")
-            contract.room = room
-        elif field == "resident_id":
-            resident = db.get(Resident, value)
-            if not resident:
-                raise HTTPException(status_code=400, detail="Resident not found")
-            contract.resident = resident
-        elif field == "status_of_contract_id":
-            status = db.get(StatusOfContract, value)
-            if not status:
-                raise HTTPException(status_code=400, detail="Status_of_contract not found")
-            contract.status_of_contract = status
-        else:
-            setattr(contract, field, value)
+        for field, value in payload.model_dump(exclude_unset=True).items():
+            if field == "manager_id":
+                manager = db.get(Manager, value)
+                if not manager:
+                    raise HTTPException(status_code=400, detail="Manager not found")
+                contract.manager = manager
+            elif field == "room_id":
+                room = db.get(Room, value)
+                if not room:
+                    raise HTTPException(status_code=400, detail="Room not found")
+                contract.room = room
+            elif field == "resident_id":
+                resident = db.get(Resident, value)
+                if not resident:
+                    raise HTTPException(status_code=400, detail="Resident not found")
+                contract.resident = resident
+            elif field == "status_of_contract_id":
+                status = db.get(StatusOfContract, value)
+                if not status:
+                    raise HTTPException(status_code=400, detail="Status_of_contract not found")
+                contract.status_of_contract = status
+            else:
+                setattr(contract, field, value)
 
-    db.commit()
-    return {"status": "ok"}
+        db.commit()
+        return {"status": "ok"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.delete("/api/contracts/{contract_id}", summary="Delete contract", tags=["Manager: Contracts"])
 def delete_contract(contract_id: int, db: Session = Depends(get_db)):
-    contract = db.get(Contract, contract_id)
-    if not contract:
-        raise HTTPException(status_code=404, detail="Contract not found")
-    db.delete(contract)
-    db.commit()
-    return {"status": "deleted"}
+    try:
+        contract = db.get(Contract, contract_id)
+        if not contract:
+            raise HTTPException(status_code=404, detail="Contract not found")
+        db.delete(contract)
+        db.commit()
+        return {"status": "deleted"}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.get("/api/contracts/occupancy", summary="Occupancy analytics", tags=["Manager: Analytics"])
@@ -292,21 +311,24 @@ def occupancy_report(
     date_to: date = Query(...),
     db: Session = Depends(get_db),
 ):
-    stmt = (
-        select(
-            Pansionat.id_pansionat.label("pansionat_id"),
-            Pansionat.name,
-            func.count(Contract.id_contract).label("contracts"),
+    try:
+        stmt = (
+            select(
+                Pansionat.id_pansionat.label("pansionat_id"),
+                Pansionat.name,
+                func.count(Contract.id_contract).label("contracts"),
+            )
+            .join(Room, Room.pansionat_id == Pansionat.id_pansionat)
+            .join(Contract, Contract.room_id == Room.id_room)
+            .where(
+                Contract.start_date <= date_to,
+                Contract.final_date >= date_from,
+            )
+            .group_by(Pansionat.id_pansionat, Pansionat.name)
         )
-        .join(Room, Room.pansionat_id == Pansionat.id_pansionat)
-        .join(Contract, Contract.room_id == Room.id_room)
-        .where(
-            Contract.start_date <= date_to,
-            Contract.final_date >= date_from,
-        )
-        .group_by(Pansionat.id_pansionat, Pansionat.name)
-    )
-    return {"items": db.execute(stmt).mappings().all()}
+        return {"items": db.execute(stmt).mappings().all()}
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.get("/api/contracts/revenue", summary="Revenue analytics", tags=["Manager: Analytics"])
@@ -315,22 +337,25 @@ def revenue_report(
     date_to: date = Query(...),
     db: Session = Depends(get_db),
 ):
-    stmt = (
-        select(
-            Pansionat.id_pansionat.label("pansionat_id"),
-            Pansionat.name,
-            func.sum(Contract.summa).label("total_revenue"),
-            func.avg(Contract.summa).label("avg_check"),
+    try:
+        stmt = (
+            select(
+                Pansionat.id_pansionat.label("pansionat_id"),
+                Pansionat.name,
+                func.sum(Contract.summa).label("total_revenue"),
+                func.avg(Contract.summa).label("avg_check"),
+            )
+            .join(Room, Room.pansionat_id == Pansionat.id_pansionat)
+            .join(Contract, Contract.room_id == Room.id_room)
+            .where(
+                Contract.start_date >= date_from,
+                Contract.final_date <= date_to,
+            )
+            .group_by(Pansionat.id_pansionat, Pansionat.name)
         )
-        .join(Room, Room.pansionat_id == Pansionat.id_pansionat)
-        .join(Contract, Contract.room_id == Room.id_room)
-        .where(
-            Contract.start_date >= date_from,
-            Contract.final_date <= date_to,
-        )
-        .group_by(Pansionat.id_pansionat, Pansionat.name)
-    )
-    return {"items": db.execute(stmt).mappings().all()}
+        return {"items": db.execute(stmt).mappings().all()}
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.get(
@@ -354,7 +379,8 @@ def admin_summary(
         .join(vladenie, vladenie.c.administrator == Administrator.id_administrator)
         .join(Pansionat, Pansionat.id_pansionat == vladenie.c.pansionat)
         .join(Room, Room.pansionat_id == Pansionat.id_pansionat, isouter=True)
-        .join(Resident, Resident.pansionat_id == Pansionat.id_pansionat, isouter=True)
+        .join(Contract, Contract.room_id == Room.id_room, isouter=True)
+        .join(Resident, Resident.id_resident == Contract.resident_id, isouter=True)
         .join(
             provision_of_services,
             provision_of_services.c.pansionat == Pansionat.id_pansionat,
@@ -454,18 +480,21 @@ def manager_contract_status(
     manager_id: int = Query(...),
     db: Session = Depends(get_db),
 ):
-    stmt = (
-        select(
-            StatusOfContract.status.label("status"),
-            func.count(Contract.id_contract).label("contracts"),
-            func.sum(Contract.summa).label("total_revenue"),
+    try:
+        stmt = (
+            select(
+                StatusOfContract.status.label("status"),
+                func.count(Contract.id_contract).label("contracts"),
+                func.sum(Contract.summa).label("total_revenue"),
+            )
+            .join(Contract, Contract.status_of_contract_id == StatusOfContract.id_status_of_contract)
+            .where(Contract.manager_id == manager_id)
+            .group_by(StatusOfContract.status)
+            .order_by(StatusOfContract.status.desc())
         )
-        .join(Contract, Contract.status_of_contract_id == StatusOfContract.id_status_of_contract)
-        .where(Contract.manager_id == manager_id)
-        .group_by(StatusOfContract.status)
-        .order_by(StatusOfContract.status.desc())
-    )
-    return {"items": db.execute(stmt).mappings().all()}
+        return {"items": db.execute(stmt).mappings().all()}
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.get(
@@ -479,19 +508,22 @@ def manager_contract_period(
     date_to: date = Query(...),
     db: Session = Depends(get_db),
 ):
-    stmt = (
-        select(
-            func.count(Contract.id_contract).label("contracts"),
-            func.sum(Contract.summa).label("total_revenue"),
-            func.avg(Contract.summa).label("avg_check"),
+    try:
+        stmt = (
+            select(
+                func.count(Contract.id_contract).label("contracts"),
+                func.sum(Contract.summa).label("total_revenue"),
+                func.avg(Contract.summa).label("avg_check"),
+            )
+            .where(
+                Contract.manager_id == manager_id,
+                Contract.start_date >= date_from,
+                Contract.final_date <= date_to,
+            )
         )
-        .where(
-            Contract.manager_id == manager_id,
-            Contract.start_date >= date_from,
-            Contract.final_date <= date_to,
-        )
-    )
-    return db.execute(stmt).mappings().first()
+        return db.execute(stmt).mappings().first()
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.get(
@@ -505,23 +537,26 @@ def manager_room_type_stats(
     date_to: date = Query(...),
     db: Session = Depends(get_db),
 ):
-    stmt = (
-        select(
-            RoomType.type.label("room_type"),
-            func.count(Contract.id_contract).label("contracts"),
-            func.sum(Contract.summa).label("total_revenue"),
+    try:
+        stmt = (
+            select(
+                RoomType.type.label("room_type"),
+                func.count(Contract.id_contract).label("contracts"),
+                func.sum(Contract.summa).label("total_revenue"),
+            )
+            .join(Room, Room.type_id == RoomType.id_type)
+            .join(Contract, Contract.room_id == Room.id_room)
+            .where(
+                Contract.manager_id == manager_id,
+                Contract.start_date >= date_from,
+                Contract.final_date <= date_to,
+            )
+            .group_by(RoomType.type)
+            .order_by(func.count(Contract.id_contract).desc())
         )
-        .join(Room, Room.type_id == RoomType.id_type)
-        .join(Contract, Contract.room_id == Room.id_room)
-        .where(
-            Contract.manager_id == manager_id,
-            Contract.start_date >= date_from,
-            Contract.final_date <= date_to,
-        )
-        .group_by(RoomType.type)
-        .order_by(func.count(Contract.id_contract).desc())
-    )
-    return {"items": db.execute(stmt).mappings().all()}
+        return {"items": db.execute(stmt).mappings().all()}
+    except Exception as exc:
+        raise_manager_error(exc)
 
 
 @app.get("/health", tags=["System"])
