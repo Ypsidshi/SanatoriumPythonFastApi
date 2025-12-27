@@ -95,7 +95,7 @@ CREATE TABLE room (
     status_room INT NOT NULL,
     CONSTRAINT fk_room_pansionat
         FOREIGN KEY (pansionat) REFERENCES pansionat(id_pansionat)
-        ON DELETE NO ACTION ON UPDATE CASCADE,
+        ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_room_type
         FOREIGN KEY (type) REFERENCES room_type(id_type)
         ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -134,7 +134,7 @@ CREATE TABLE contract (
         ON DELETE NO ACTION ON UPDATE CASCADE,
     CONSTRAINT fk_contract_room
         FOREIGN KEY (room) REFERENCES room(id_room)
-        ON DELETE NO ACTION ON UPDATE CASCADE,
+        ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_contract_resident
         FOREIGN KEY (resident) REFERENCES resident(id_resident)
         ON DELETE NO ACTION ON UPDATE NO ACTION,

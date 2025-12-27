@@ -111,7 +111,12 @@ class Pansionat(Base):
     health_profile_id = Column("health_profile", Integer, ForeignKey("health_profile.id_health_profile"), nullable=False)
 
     health_profile = relationship("HealthProfile", back_populates="pansionats")
-    rooms = relationship("Room", back_populates="pansionat")
+    rooms = relationship(
+        "Room",
+        back_populates="pansionat",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     services = relationship("Service", secondary=provision_of_services, back_populates="pansionats")
     administrators = relationship("Administrator", secondary=vladenie, back_populates="pansionat_links")
 
@@ -133,14 +138,24 @@ class Room(Base):
 
     id_room = Column(Integer, primary_key=True, autoincrement=True)
     price = Column(Integer, nullable=False)
-    pansionat_id = Column("pansionat", Integer, ForeignKey("pansionat.id_pansionat"), nullable=False)
+    pansionat_id = Column(
+        "pansionat",
+        Integer,
+        ForeignKey("pansionat.id_pansionat", ondelete="CASCADE"),
+        nullable=False,
+    )
     type_id = Column("type", Integer, ForeignKey("room_type.id_type"), nullable=False)
     status_room_id = Column("status_room", Integer, ForeignKey("status_room.id_status_room"), nullable=False)
 
     pansionat = relationship("Pansionat", back_populates="rooms")
     room_type = relationship("RoomType", back_populates="rooms")
     status_room = relationship("StatusRoom", back_populates="rooms")
-    contracts = relationship("Contract", back_populates="room")
+    contracts = relationship(
+        "Contract",
+        back_populates="room",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class Resident(Base):
@@ -168,7 +183,7 @@ class Contract(Base):
     final_date = Column(Date, nullable=False)
     summa = Column(Integer, nullable=False)
     manager_id = Column("manager", Integer, ForeignKey("manager.id_manager"), nullable=False)
-    room_id = Column("room", Integer, ForeignKey("room.id_room"), nullable=False)
+    room_id = Column("room", Integer, ForeignKey("room.id_room", ondelete="CASCADE"), nullable=False)
     resident_id = Column("resident", Integer, ForeignKey("resident.id_resident"), nullable=False)
     status_of_contract_id = Column(
         "status_of_contract",
