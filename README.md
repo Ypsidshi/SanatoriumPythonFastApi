@@ -265,6 +265,11 @@ docs/            business requirements, manual API test cases
   are not called from Python.
 - The smoke tests hit a live server rather than an isolated test database, so
   they cannot run in CI as-is.
+- Driver errors are surfaced verbatim in `400` responses instead of being mapped
+  to domain errors.
+- `contract` carries a `UNIQUE` constraint on `resident`, so a resident can hold
+  one contract only; `POST /api/contracts` for a resident who already has one
+  fails on that constraint.
 - Some column names carry typos frozen into the original schema
   (`buiding_year`, `adress`) and one transliterated table name (`vladenie`); they
   are kept as-is so the SQL scripts, the ORM models and the reports stay

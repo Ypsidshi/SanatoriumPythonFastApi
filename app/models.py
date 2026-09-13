@@ -177,6 +177,10 @@ class Resident(Base):
 
 class Contract(Base):
     __tablename__ = "contract"
+    # sql/02_operations_mssql.sql puts AFTER triggers on this table, and SQL
+    # Server rejects an INSERT with an OUTPUT clause on a table that has them.
+    # Fetch the generated key with SCOPE_IDENTITY() instead.
+    __table_args__ = {"implicit_returning": False}
 
     id_contract = Column(Integer, primary_key=True, autoincrement=True)
     start_date = Column(Date, nullable=False)
