@@ -11,6 +11,7 @@ triggers, CHECK constraints and benchmark scripts.
 ![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?logo=microsoftsqlserver&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+[![CI](https://github.com/Ypsidshi/SanatoriumPythonFastApi/actions/workflows/ci.yml/badge.svg)](https://github.com/Ypsidshi/SanatoriumPythonFastApi/actions/workflows/ci.yml)
 
 > Coursework project (АРМ администратора / АРМ менеджера), written to practise
 > relational modelling, T-SQL and REST API design. The business processes it
@@ -60,6 +61,7 @@ If `make` is available, `make help` lists the same operations as short targets.
 | Analytics | Aggregate queries: occupancy, revenue and average cheque per pansionat, service availability, top services, contracts by status and by room type |
 | T-SQL | 12 stored procedures, 4 triggers, 4 views, 39 CHECK constraints, a table-space report and benchmark scripts using `STATISTICS IO/TIME` |
 | Data generation | `scripts/seed_mssql.py` — parameterised generator for bulk service rows; `sql/04_seed_mass_mssql.sql` — mass insert for load testing |
+| Quality | 38 tests against in-memory SQLite (no database needed), ruff, GitHub Actions |
 
 ## Endpoints
 
@@ -234,26 +236,48 @@ import on Python 3.13+.
 ## Tests
 
 ```bash
-pytest -q tests
+pip install -r requirements-dev.txt
+pytest          # 38 tests, ~1s, no database required
+ruff check .
 ```
 
-`tests/test_api_smoke.py` sends real HTTP requests, so it needs a running API —
-start the stack first, or point it elsewhere with `BASE_URL=http://host:port`.
+The suite drives the app through `TestClient` against an in-memory SQLite
+database seeded with the same rows as `sql/03_seed_mssql.sql`, so it runs in CI
+without SQL Server. Foreign keys are enabled on the SQLite connection, otherwise
+the `ON DELETE CASCADE` paths the models rely on would not be exercised.
+
+What SQLite cannot cover — the stored procedures, the triggers and the CHECK
+constraints — is left to `tests/test_live_smoke.py`, which skips itself unless
+it is pointed at a running deployment:
+
+```bash
+docker compose up -d
+BASE_URL=http://127.0.0.1:8000 pytest tests/test_live_smoke.py
+```
 
 ## Project layout
 
 ```
 app/
-  main.py        FastAPI app: routes, analytics queries, table whitelist
-  models.py      SQLAlchemy models and association tables
-  schemas.py     Pydantic request DTOs
-  db.py          engine, session factory, get_db dependency
+  main.py                    app factory, Swagger metadata, router wiring
+  db.py                      engine, session factory, get_db dependency
+  models.py                  SQLAlchemy models and association tables
+  schemas.py                 Pydantic request and response DTOs
+  errors.py                  database exceptions -> HTTP responses
+  routers/
+    admin_pansionats.py      pansionat CRUD
+    admin_analytics.py       administrator reports, table whitelist
+    manager_contracts.py     contract CRUD
+    manager_analytics.py     occupancy and revenue reports
+    system.py                health check
+    common.py                shared lookup and serialisation helpers
 scripts/
-  init_db.py     create the database and apply sql/*.sql (used by docker compose)
-  seed_mssql.py  parameterised generator for bulk service rows
-sql/             T-SQL schema, routines, constraints, seeds, benchmarks
-tests/           HTTP smoke tests
-docs/            business requirements, manual API test cases
+  init_db.py                 create the database and apply sql/*.sql
+  seed_mssql.py              generator for bulk service rows
+sql/                         T-SQL schema, routines, constraints, seeds, benchmarks
+tests/                       SQLite-backed suite + opt-in live smoke tests
+docs/                        business requirements, manual API test cases
+.github/workflows/ci.yml     lint and test on every push
 ```
 
 ## Known limitations
@@ -263,13 +287,12 @@ docs/            business requirements, manual API test cases
 - The API reaches the tables through SQLAlchemy; the stored procedures in
   `sql/02_operations_mssql.sql` implement the same operations independently and
   are not called from Python.
-- The smoke tests hit a live server rather than an isolated test database, so
-  they cannot run in CI as-is.
-- Driver errors are surfaced verbatim in `400` responses instead of being mapped
-  to domain errors.
-- `contract` carries a `UNIQUE` constraint on `resident`, so a resident can hold
-  one contract only; `POST /api/contracts` for a resident who already has one
-  fails on that constraint.
+- `contract` carries `UNIQUE` constraints on both `resident` and `room`, so a
+  resident can hold exactly one contract and a room can be booked exactly once.
+  That is the original schema; it makes `POST /api/contracts` return `409` for
+  any resident or room that already appears in a contract.
+- The test suite runs on SQLite, which cannot execute the T-SQL layer, so the
+  triggers and stored procedures are only covered by the live smoke tests.
 - Some column names carry typos frozen into the original schema
   (`buiding_year`, `adress`) and one transliterated table name (`vladenie`); they
   are kept as-is so the SQL scripts, the ORM models and the reports stay
