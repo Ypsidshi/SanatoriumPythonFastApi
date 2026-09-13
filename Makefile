@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs init run test clean
+.PHONY: help up down logs init run lint test smoke clean
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-6s %s\n", $$1, $$2}'
@@ -20,8 +20,14 @@ init: ## Re-apply sql/*.sql to the running database
 run: ## Run the API locally against DATABASE_URL from .env
 	uvicorn app.main:app --reload
 
-test: ## Run the smoke tests against a running API
-	pytest -q tests
+lint: ## Run ruff over the project
+	ruff check .
+
+test: ## Run the test suite (in-memory SQLite, no database needed)
+	pytest
+
+smoke: ## Run the live smoke tests against the running stack
+	BASE_URL=http://127.0.0.1:8000 pytest tests/test_live_smoke.py
 
 clean: ## Remove local Python caches
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
