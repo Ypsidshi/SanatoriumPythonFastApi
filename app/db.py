@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 # Load environment variables from a local .env if present.
 load_dotenv()
 
-# Default now targets SQL Server; override with DATABASE_URL env var.
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mssql+pyodbc://user:password@localhost:1433/sanatorium"
-    "?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes",
-)
+# The connection string lives in the environment only - see .env.example.
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is not set. Copy .env.example to .env and fill it in, "
+        "or export DATABASE_URL before starting the app."
+    )
 
 engine = create_engine(
     DATABASE_URL,
