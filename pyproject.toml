@@ -28,3 +28,6 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "f
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Put the project root on sys.path so `import app` works under a plain
+# `pytest` invocation, not only under `python -m pytest`.
+pythonpath = ["."]
