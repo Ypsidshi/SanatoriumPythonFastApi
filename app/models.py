@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -5,33 +7,64 @@ from sqlalchemy import (
     Date,
     ForeignKey,
     Integer,
+    MetaData,
     String,
     Table,
 )
 from sqlalchemy.orm import declarative_base, relationship
 
+# Names every constraint and index that create_all emits, so the generated
+# schema matches the names used in sql/01_schema_mssql.sql instead of the
+# server-generated ones that show up in error messages.
+NAMING_CONVENTION = {
+    "ix": "idx_%(table_name)s_%(column_0_N_name)s",
+    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_N_name)s",
+    "pk": "pk_%(table_name)s",
+}
 
-Base = declarative_base()
+Base = declarative_base(metadata=MetaData(naming_convention=NAMING_CONVENTION))
 
 provision_of_services = Table(
     "provision_of_services",
     Base.metadata,
-    Column("service", ForeignKey("service.id_service", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
-    Column("pansionat", ForeignKey("pansionat.id_pansionat", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
+    Column(
+        "service", ForeignKey("service.id_service", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True
+    ),
+    Column(
+        "pansionat",
+        ForeignKey("pansionat.id_pansionat", ondelete="CASCADE", onupdate="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 using_service = Table(
     "using_service",
     Base.metadata,
-    Column("service", ForeignKey("service.id_service", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
-    Column("resident", ForeignKey("resident.id_resident", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
+    Column(
+        "service", ForeignKey("service.id_service", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True
+    ),
+    Column(
+        "resident",
+        ForeignKey("resident.id_resident", ondelete="CASCADE", onupdate="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 vladenie = Table(
     "vladenie",
     Base.metadata,
-    Column("administrator", ForeignKey("administrator.id_administrator", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
-    Column("pansionat", ForeignKey("pansionat.id_pansionat", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
+    Column(
+        "administrator",
+        ForeignKey("administrator.id_administrator", ondelete="CASCADE", onupdate="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "pansionat",
+        ForeignKey("pansionat.id_pansionat", ondelete="CASCADE", onupdate="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -107,8 +140,12 @@ class Pansionat(Base):
     name = Column(String(255), nullable=False, unique=True)
     photo = Column(String(255), nullable=True)
     buiding_year = Column(Integer, nullable=False)
-    administrator_id = Column("administrator", Integer, ForeignKey("administrator.id_administrator"), nullable=False)
-    health_profile_id = Column("health_profile", Integer, ForeignKey("health_profile.id_health_profile"), nullable=False)
+    administrator_id = Column(
+        "administrator", Integer, ForeignKey("administrator.id_administrator"), nullable=False
+    )
+    health_profile_id = Column(
+        "health_profile", Integer, ForeignKey("health_profile.id_health_profile"), nullable=False
+    )
 
     health_profile = relationship("HealthProfile", back_populates="pansionats")
     rooms = relationship(
@@ -180,15 +217,32 @@ class Contract(Base):
     # sql/02_operations_mssql.sql puts AFTER triggers on this table, and SQL
     # Server rejects an INSERT with an OUTPUT clause on a table that has them.
     # Fetch the generated key with SCOPE_IDENTITY() instead.
-    __table_args__ = {"implicit_returning": False}
+    __table_args__: ClassVar[dict[str, bool]] = {"implicit_returning": False}
 
     id_contract = Column(Integer, primary_key=True, autoincrement=True)
-    start_date = Column(Date, nullable=False)
-    final_date = Column(Date, nullable=False)
+    # Indexed in sql/01_schema_mssql.sql; the period filters in the analytics
+    # endpoints scan these two columns.
+    start_date = Column(Date, nullable=False, index=True)
+    final_date = Column(Date, nullable=False, index=True)
     summa = Column(Integer, nullable=False)
     manager_id = Column("manager", Integer, ForeignKey("manager.id_manager"), nullable=False)
-    room_id = Column("room", Integer, ForeignKey("room.id_room", ondelete="CASCADE"), nullable=False)
-    resident_id = Column("resident", Integer, ForeignKey("resident.id_resident"), nullable=False)
+    # uq_contract_room / uq_contract_resident in sql/01_schema_mssql.sql: one
+    # contract per room and per resident. Mirrored here so that create_all and
+    # the SQL scripts produce the same schema.
+    room_id = Column(
+        "room",
+        Integer,
+        ForeignKey("room.id_room", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    resident_id = Column(
+        "resident",
+        Integer,
+        ForeignKey("resident.id_resident"),
+        nullable=False,
+        unique=True,
+    )
     status_of_contract_id = Column(
         "status_of_contract",
         Integer,

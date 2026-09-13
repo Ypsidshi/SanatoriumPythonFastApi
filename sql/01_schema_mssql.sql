@@ -23,7 +23,7 @@ CREATE TABLE manager (
     name VARCHAR(30) NOT NULL,
     otchestvo VARCHAR(30) NOT NULL,
     adress VARCHAR(255) NOT NULL,
-    mail VARCHAR(255) NOT NULL UNIQUE,
+    mail VARCHAR(255) NOT NULL CONSTRAINT uq_manager_mail UNIQUE,
     telephone BIGINT NOT NULL
 );
 GO
@@ -34,7 +34,7 @@ CREATE TABLE administrator (
     name VARCHAR(30) NOT NULL,
     otchestvo VARCHAR(30) NOT NULL,
     adress VARCHAR(255) NOT NULL,
-    mail VARCHAR(255) NOT NULL UNIQUE,
+    mail VARCHAR(255) NOT NULL CONSTRAINT uq_administrator_mail UNIQUE,
     telephone BIGINT NOT NULL
 );
 GO
@@ -65,7 +65,7 @@ GO
 
 CREATE TABLE pansionat (
     id_pansionat INT IDENTITY(1,1) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL CONSTRAINT uq_pansionat_name UNIQUE,
     photo VARCHAR(255) NULL,
     buiding_year INT NOT NULL,
     administrator INT NOT NULL,
@@ -110,9 +110,9 @@ CREATE TABLE resident (
     surname VARCHAR(30) NOT NULL,
     name VARCHAR(30) NOT NULL,
     otchestvo VARCHAR(30) NOT NULL,
-    mail VARCHAR(255) NOT NULL UNIQUE,
+    mail VARCHAR(255) NOT NULL CONSTRAINT uq_resident_mail UNIQUE,
     telephone BIGINT NOT NULL,
-    passport BIGINT NOT NULL UNIQUE,
+    passport BIGINT NOT NULL CONSTRAINT uq_resident_passport UNIQUE,
     manager INT NOT NULL,
     CONSTRAINT fk_resident_manager
         FOREIGN KEY (manager) REFERENCES manager(id_manager)
