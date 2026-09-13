@@ -1,9 +1,22 @@
+"""Smoke checks against a running deployment.
+
+Unlike the rest of the suite these need a live API and a real SQL Server, so
+they only run when BASE_URL is set:
+
+    docker compose up -d
+    BASE_URL=http://127.0.0.1:8000 pytest tests/test_live_smoke.py
+"""
+
 import os
 
 import httpx
+import pytest
 
+BASE_URL = os.getenv("BASE_URL")
 
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+pytestmark = pytest.mark.skipif(
+    not BASE_URL, reason="set BASE_URL to run the smoke tests against a live API"
+)
 
 
 def test_health():
