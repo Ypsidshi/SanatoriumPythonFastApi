@@ -1,0 +1,36 @@
+name: sanatorium
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_password123}
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+
+  # One-shot container: creates the database and applies sql/*.sql, then exits.
+  db-init:
+    build: .
+    depends_on:
+      - mssql
+    environment:
+      DATABASE_URL: mssql+pyodbc://sa:${MSSQL_SA_PASSWORD:-Your_password123}@mssql:1433/sanatorium?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+    command: ["python", "-m", "scripts.init_db"]
+    restart: "no"
+
+  api:
+    build: .
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: mssql+pyodbc://sa:${MSSQL_SA_PASSWORD:-Your_password123}@mssql:1433/sanatorium?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+    ports:
+      - "8000:8000"
+
+volumes:
+  mssql-data:
