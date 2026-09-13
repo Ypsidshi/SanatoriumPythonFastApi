@@ -134,7 +134,7 @@ BEGIN
 END
 GO
 
--- Trigger: if health profile is 'сердечно-сосудистый', discount services linked to that pansionat
+-- Trigger: if health profile is 'СЃРµСЂРґРµС‡РЅРѕ-СЃРѕСЃСѓРґРёСЃС‚С‹Р№', discount services linked to that pansionat
 CREATE TRIGGER trg_pos_heart_discount
 ON provision_of_services
 AFTER INSERT
@@ -147,7 +147,7 @@ BEGIN
     JOIN inserted i ON s.id_service = i.service
     JOIN pansionat p ON p.id_pansionat = i.pansionat
     JOIN health_profile hp ON hp.id_health_profile = p.health_profile
-    WHERE LOWER(hp.profile) = N'сердечно-сосудистый';
+    WHERE LOWER(hp.profile) = N'СЃРµСЂРґРµС‡РЅРѕ-СЃРѕСЃСѓРґРёСЃС‚С‹Р№';
 END
 GO
 

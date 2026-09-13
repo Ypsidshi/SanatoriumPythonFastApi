@@ -1,3 +1,12 @@
+# Business requirements
+
+Source specification for the project: the automated business processes of the
+administrator and manager workstations. The API endpoints in `app/main.py` and
+the stored procedures and triggers in `sql/02_operations_mssql.sql` implement
+the functions listed below.
+
+---
+
 Описание функций (автоматизируемых бизнес-процессов) приложения АРМ Администратора
 
 № п/п	Наименование	Описание	Документы (данные)	Ограничения

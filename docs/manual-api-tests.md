@@ -1,3 +1,11 @@
+# Manual API test cases
+
+Request and response examples for every endpoint, for checking the API by hand
+in Swagger UI (`/docs`) or with curl. The automated smoke subset lives in
+`tests/test_api_smoke.py`.
+
+---
+
 Manual API tests (Swagger or curl)
 
 Base URL
